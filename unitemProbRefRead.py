@@ -3,7 +3,7 @@ import math
 import sys
 
 myhmm = HMM.HMM()
-mypar = HMM.HMMParameters(open("/home/UNIXHOME/mbrown/mbrown/workspace2017Q1/ccs-hmm/unitem.CCS.170214.dat").read())
+mypar = HMM.HMMParameters(open("unitem.CCS.170214.dat").read())
 
 print "mypar", mypar
 
@@ -27,7 +27,11 @@ if sys.argv[2] != "-":
 else:
     myhmm.targetOutput = "" # nothing
 
+print "model= unitem.CCS.170214.dat"
+print "ref=", sys.argv[1]
+print "read=", sys.argv[2]
 begin = 0
 end = len(myhmm.targetOutput)
 result = myhmm.backward(0,begin,end)
-print result[2] # sum paths
+
+print "prob(read|ref,model)=", result[2] # sum paths

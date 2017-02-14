@@ -4,6 +4,23 @@ goal: construct an hmm modeling CCS error. I want to know the
 probability of seeing any read sequence given any reference sequence
 under CCS (99% predicted accuracy filtering) error modes.
 
+================================
+
+RESULT: You can get the HMM probability of any reference sequencing as any read by:
+
+- cd /workdir/
+
+- git clone https://github.com/mpsbpbi/hmmhmm.git
+
+- cd hmmhmm
+
+- # make sure you have numpy
+
+- export PYTHONPATH=/workdir/hmmhmm; python unitemProbRefRead.py CAGCGACCC CAGCGACCC
+
+
+================================
+
 I had done this before, but this clean it up so I can rely on the
 estimates. (Before I was unsure whether the parameters were for raw or
 CCS)
@@ -33,10 +50,6 @@ from mpsbpbi github account create project "hmmhmm":
 > https://github.com/mpsbpbi/hmmhmm.git
 
 Create .gitignore
-
-# set up git
-git config --global user.email "michaelbrown14142@gmail.com"
-git config --global user.name "michaelbrownid"
 
 echo "# hmmhmm" >> README.md
 echo "See README_ccs-hmm.html" >> README.md
