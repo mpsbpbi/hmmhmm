@@ -1,0 +1,52 @@
+<pre>
+
+goal: construct an hmm modeling CCS error. I want to know the
+probability of seeing any read sequence given any reference sequence
+under CCS (99% predicted accuracy filtering) error modes.
+
+I had done this before, but this clean it up so I can rely on the
+estimates. (Before I was unsure whether the parameters were for raw or
+CCS)
+
+================================
+
+Here's where I did it before:
+/home/UNIXHOME/mbrown/mbrown/workspace2016Q4/juliet-weird-fp/
+
+module add smrtanalysis # for numpy
+
+export PYTHONPATH=/home/UNIXHOME/mbrown/mbrown/workspace2016Q3/zscore/code/; python /home/UNIXHOME/mbrown/mbrown/workspace2016Q4/unitem-training/unitemProbRefRead.py CAGCGACCC CAGCGACCC
+0.895412830253
+
+================================
+
+Here's where I did the training:
+/home/UNIXHOME/mbrown/mbrown/workspace2016Q4/unitem-training/
+
+The HMM code is here:
+/home/UNIXHOME/mbrown/mbrown/workspace2016Q3/zscore/code/
+
+================================
+
+Put the HMM code on github.
+
+mkdir hmmhmm # somewhat unique
+cp /home/UNIXHOME/mbrown/mbrown/workspace2016Q3/zscore/code/HMM.py /home/UNIXHOME/mbrown/mbrown/workspace2017Q1/ccs-hmm/hmmhmm/
+touch __init__.py
+
+from mpsbpbi github account create project "hmmhmm":
+> https://github.com/mpsbpbi/hmmhmm.git
+
+Create .gitignore
+
+# set up git
+git config --global user.email "michaelbrown14142@gmail.com"
+git config --global user.name "michaelbrownid"
+
+echo "# hmmhmm" >> README.md
+echo "See README_ccs-hmm.html" >> README.md
+git init
+git add .
+git commit -m "first commit"
+git remote add origin https://github.com/mpsbpbi/hmmhmm.git
+git push -u origin master
