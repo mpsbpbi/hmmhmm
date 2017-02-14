@@ -20,13 +20,8 @@ export PYTHONPATH=/home/UNIXHOME/mbrown/mbrown/workspace2016Q3/zscore/code/; pyt
 
 ================================
 
-Here's where I did the training:
-/home/UNIXHOME/mbrown/mbrown/workspace2016Q4/unitem-training/
-
 The HMM code is here:
 /home/UNIXHOME/mbrown/mbrown/workspace2016Q3/zscore/code/
-
-================================
 
 Put the HMM code on github.
 
@@ -50,3 +45,151 @@ git add .
 git commit -m "first commit"
 git remote add origin https://github.com/mpsbpbi/hmmhmm.git
 git push -u origin master
+
+================================
+
+cp /home/UNIXHOME/mbrown/mbrown/workspace2016Q4/unitem-training/unitemProbRefRead.py ./
+
+import HMM
+<><><>
+import hmmhmm.HMM
+
+module add smrtanalysis # for numpy
+
+export PYTHONPATH=/home/UNIXHOME/mbrown/mbrown/workspace2017Q1/ccs-hmm/; python unitemProbRefRead.py CAGCGACCC CAGCGACCC
+0.895412830253
+
+Good works!
+
+================================
+
+Now estimate HMM and then update code to take model specification from
+file.
+
+Align CCS reads against correct reference.
+
+Here is the latest HIV nl4.3 data:
+/home/UNIXHOME/mbrown/mbrown/workspace2017Q1/minorvar-fp-qv/sourceData.tsv
+
+I ran CCS and filtered to 99% here:
+/mnt/secondary/Share/mbrown/workspace2017Q1/minorvar-fp-qv/data
+
+Look at the wild nl43 run:
+/mnt/secondary/Share/mbrown/workspace2017Q1/minorvar-fp-qv/data/S1/S1.ccs.99.bam
+
+The correct reference:
+/home/UNIXHOME/mbrown/mbrown/workspace2016Q3/dataset-minorvar/NIAID_nl43_rochetarget3.2kb.fasta
+
+module add smrtanalysis/4.0.0
+
+pbalign --verbose --maxHits 1 --nproc 16 \
+/mnt/secondary/Share/mbrown/workspace2017Q1/minorvar-fp-qv/data/S1/S1.ccs.99.bam \
+/home/UNIXHOME/mbrown/mbrown/workspace2016Q3/dataset-minorvar/NIAID_nl43_rochetarget3.2kb.fasta \
+S1.ccs.99.V.NIAID_nl43.pbalign.bam
+
+================================
+
+Here's where I did the training previously
+/home/UNIXHOME/mbrown/mbrown/workspace2016Q4/unitem-training/
+
+module load R/3.2.3-internal
+R
+
+library(pbbamr)
+library(unitem)
+
+bam_name="/home/UNIXHOME/mbrown/mbrown/workspace2017Q1/ccs-hmm/S1.ccs.99.V.NIAID_nl43.pbalign.bam"
+fasta_name="/home/UNIXHOME/mbrown/mbrown/workspace2016Q3/dataset-minorvar/NIAID_nl43_rochetarget3.2kb.fasta"
+
+ind = loadPBI(bam_name)
+sampled_rows = sample (nrow (ind), 1500)
+large_alns = loadAlnsFromIndex (ind, fasta_name, rows = sampled_rows)
+
+trimmed_length = 140
+f_large_alns = Filter (function(x) nrow (x) > trimmed_length, large_alns)
+small_alns = lapply (f_large_alns, function(x) trimAlignment (x, trimToLength = 140))
+
+#head(small_alns[[1]])
+
+fit = hmm (read ~ 1, small_alns, verbose = FALSE, use8Contexts = TRUE)
+
+fit$likelihoodHistory
+ [1]      -Inf -7584.001 -6599.083 -6434.049 -6389.827 -6351.225 -6328.354
+ [8] -6320.267 -6318.244 -6317.740 -6317.489 -6317.004 -6316.271 -6315.921
+[15] -6315.841 -6315.822
+
+################################
+#### emissions
+
+tmp = fit$mPmf
+tmp$param = "mPmf"
+model=tmp
+
+tmp = fit$bPmf
+tmp$param ="bPmf"
+model = rbind(model, tmp)
+
+tmp = fit$sPmf
+tmp$param ="sPmf"
+model = rbind(model, tmp)
+
+model$head="ACGT-N.ctx.param"
+model$ver="unitemv1.0.0"
+
+#### transitions
+
+## look at model transistions over all contexts:
+predictions = lapply(fit$models, function(model) predict(model$cfit, type = "probs")[1,])
+df = data.frame(do.call(rbind, predictions))
+# now let's add in the CTX name
+df = cbind(df, 0, 0, factor(sapply(fit$models, function(z) z$ctx)),"trans")
+colnames(df) = c( colnames(fit$pseudoCounts), "null0", "null1", "CTX", "param")
+df$head="Match.Branch.Stick.Delete.CTX.param"
+df$ver="unitemv1.0.0"
+
+names(model) = c("V1","V2","V3","V4","V5","V6","CTX","param","head","ver")
+names(df) = names(model)
+
+model = rbind(model,df)
+
+# head is ACGT and then Match.Branch.Stick.Delete for trans
+              V1           V2           V3           V4 V5 V6 CTX param
+AA  9.995345e-01 3.128864e-04 1.525866e-04 2.772615e-11  0  0  AA  mPmf
+CC  3.688280e-38 9.997363e-01 2.017327e-60 2.636740e-04  0  0  CC  mPmf
+GG  1.250460e-37 7.032711e-52 1.000000e+00 5.720786e-43  0  0  GG  mPmf
+TT  2.344640e-05 3.276314e-05 2.114172e-04 9.997324e-01  0  0  TT  mPmf
+NA  9.998125e-01 9.037754e-05 9.714482e-05 4.868303e-43  0  0  NA  mPmf
+NC  6.584621e-05 9.995504e-01 9.264936e-47 3.837680e-04  0  0  NC  mPmf
+NG  2.211264e-04 7.563153e-42 9.996105e-01 1.683636e-04  0  0  NG  mPmf
+NT  1.551262e-43 2.660175e-06 3.537170e-04 9.996436e-01  0  0  NT  mPmf
+AA1 1.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00  0  0  AA  bPmf
+CC1 0.000000e+00 1.000000e+00 0.000000e+00 0.000000e+00  0  0  CC  bPmf
+GG1 0.000000e+00 0.000000e+00 1.000000e+00 0.000000e+00  0  0  GG  bPmf
+TT1 0.000000e+00 0.000000e+00 0.000000e+00 1.000000e+00  0  0  TT  bPmf
+NA1 1.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00  0  0  NA  bPmf
+NC1 0.000000e+00 1.000000e+00 0.000000e+00 0.000000e+00  0  0  NC  bPmf
+NG1 0.000000e+00 0.000000e+00 1.000000e+00 0.000000e+00  0  0  NG  bPmf
+NT1 0.000000e+00 0.000000e+00 0.000000e+00 1.000000e+00  0  0  NT  bPmf
+AA2 0.000000e+00 1.721111e-01 2.638294e-01 5.640595e-01  0  0  AA  sPmf
+CC2 3.406645e-01 0.000000e+00 6.593355e-01 2.000886e-21  0  0  CC  sPmf
+GG2 9.292407e-51 3.245517e-77 0.000000e+00 1.000000e+00  0  0  GG  sPmf
+TT2 1.412359e-01 6.098883e-01 2.488758e-01 0.000000e+00  0  0  TT  sPmf
+NA2 0.000000e+00 2.169900e-09 4.667544e-01 5.332456e-01  0  0  NA  sPmf
+NC2 5.107304e-01 0.000000e+00 1.117140e-01 3.775556e-01  0  0  NC  sPmf
+NG2 4.430626e-01 2.493240e-25 0.000000e+00 5.569374e-01  0  0  NG  sPmf
+NT2 6.160028e-01 1.486545e-01 2.353427e-01 0.000000e+00  0  0  NT  sPmf
+0   9.850402e-01 3.211302e-03 6.041387e-04 1.114438e-02  0  0  AA trans
+1   9.913223e-01 1.325398e-03 2.508497e-04 7.101465e-03  0  0  CC trans
+2   9.886420e-01 1.734274e-03 1.578356e-04 9.465924e-03  0  0  GG trans
+3   9.843414e-01 3.426583e-03 4.280836e-04 1.180395e-02  0  0  TT trans
+4   9.990713e-01 6.637631e-04 1.381655e-04 1.267297e-04  0  0  NA trans
+5   9.987681e-01 7.046720e-04 3.766472e-04 1.506209e-04  0  0  NC trans
+6   9.990167e-01 5.988944e-04 1.315076e-04 2.529177e-04  0  0  NG trans
+7   9.986354e-01 8.097225e-04 2.827528e-04 2.721549e-04  0  0  NT trans
+
+write.table(model,"unitem.CCS.170214.dat",row.names=F,sep="\t",quote=F)
+
+TODO: compare against older estimates in
+/home/UNIXHOME/mbrown/mbrown/workspace2016Q4/unitem-training/README_unitem-training-ccs-hmm.html
+
+TODO: why are all the branch estimates unity??

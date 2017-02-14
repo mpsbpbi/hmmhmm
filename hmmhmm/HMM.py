@@ -30,108 +30,82 @@ class HMMState:
 ################################
 class HMMParameters:
 
-        #### define the transisition and output given the base identity
-        ## Generic probabilities
-        # def ftrans( base ):
-        #     """pm,pb,ps,pd for base ACGT"""
-        #     return( (0.8,0.05,0.05,0.1) )
-        # def foutm( base ):
-        #     tmp = [0.0,0.0,0.0,0.0]
-        #     tmp[ self.alphaToInd[baseIden] ] =1.0
-        #     return(tmp)
-        # def foutb( base ):
-        #     tmp = [0.0,0.0,0.0,0.0]
-        #     tmp[ self.alphaToInd[baseIden] ] =1.0
-        #     return(tmp)
-        # def fouts( base ):
-        #     tmp = [1.0/3.0,1.0/3.0,1.0/3.0,1.0/3.0]
-        #     tmp[ self.alphaToInd[baseIden] ] =0.0
-        #     return(tmp)
-
-        # # nigel's sim parameters
-        # def ftrans( base ):
-        #     """pm,pb,ps,pd for base ACGT"""
-        #     p_m  = 0.95583140484751283
-        #     p_d  = 0.00097238955012494488
-        #     p_b  = 0.029256323818866534
-        #     p_s  = 0.013939881783495679
-        #     return( (p_m,p_b,p_s,p_d) )
-        # def foutm( base ):
-        #     eps  = 0.00505052456472967
-        #     tmp = [eps/3,eps/3,eps/3,eps/3]
-        #     tmp[ self.alphaToInd[baseIden] ] =1.0-eps
-        #     return(tmp)
-        # def foutb( base ):
-        #     tmp = [0.0,0.0,0.0,0.0]
-        #     tmp[ self.alphaToInd[baseIden] ] =1.0
-        #     return(tmp)
-        # def fouts( base ):
-        #     tmp = [1.0/3.0,1.0/3.0,1.0/3.0,1.0/3.0]
-        #     tmp[ self.alphaToInd[baseIden] ] =0.0
-        #     return(tmp)
-
     @staticmethod
-    def parseDat( holder, data ):
-        for ll in data.splitlines():
-            ff = ll.split()
-            pp = np.array([float(xx) for xx in ff[1:5]])
-            pp = pp/sum(pp) # sum to 1.0 after getting rid of false pseudo-count for "-"
-            holder[ff[0]] = pp
+    def parseDat( src, target ):
+        """Parse out the data containing model parameters"""
+        res = {}
+        for ll in src.splitlines():
+            # if param is target
+            if target in ll:
+                ff = ll.split("\t")
+                pp = np.array([float(xx) for xx in ff[0:4]])
+                pp = pp/sum(pp) # just to make sure
+                # store by CTX
+                res[ff[6]] = pp
+        return(res)
 
-    def __init__(self, mPmfdat=None, bPmfdat=None, sPmfdat=None, transdat=None):
-        #             A           C           G          T           - N CTX
-        if mPmfdat is None:
-            mPmfdat = """AA 9.988101e-01 9.373250e-04 1.403341e-04 7.007589e-05 4.219841e-05 0  AA
-CC 2.146259e-03 9.976724e-01 1.083980e-04 3.663233e-05 3.631252e-05 0  CC
-GG 6.026106e-05 3.617703e-05 9.991735e-01 6.943761e-04 3.570186e-05 0  GG
-TT 1.050065e-04 1.228631e-04 9.038600e-04 9.988269e-01 4.138490e-05 0  TT
-NA 9.991590e-01 6.687298e-04 8.842021e-05 6.981615e-05 1.403361e-05 0  NA
-NC 9.602324e-04 9.981416e-01 6.114106e-05 8.252746e-04 1.176365e-05 0  NC
-NG 5.913309e-04 3.908480e-05 9.977593e-01 1.598439e-03 1.184521e-05 0  NG
-NT 4.828707e-05 9.150200e-05 1.027760e-03 9.988184e-01 1.410018e-05 0  NT
+    def __init__(self, modelSpec):
+        """Init according to modelSpec. This is the Sequel CCS 99% filtered estimates:
+V1	V2	V3	V4	V5	V6	CTX	param	head	ver
+0.999534526952176	0.000312886404921852	0.000152586615175579	2.77261500523443e-11	0	0	AA	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+3.68828022843349e-38	0.999736325976609	2.01732724887564e-60	0.000263674023391063	0	0	CC	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+1.25045994442458e-37	7.03271085106264e-52	1	5.72078625640215e-43	0	0	GG	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+2.34463964180455e-05	3.27631398082783e-05	0.000211417188567232	0.999732373275206	0	0	TT	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.999812477638156	9.03775448080541e-05	9.71448170361884e-05	4.86830324534904e-43	0	0	NA	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+6.58462076132639e-05	0.999550385774239	9.26493556594431e-47	0.000383768018147193	0	0	NC	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.000221126370686052	7.56315270883505e-42	0.999610510073569	0.000168363555744473	0	0	NG	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+1.55126181265036e-43	2.66017460649836e-06	0.000353716994026079	0.999643622831367	0	0	NT	mPmf	ACGT-N.ctx.param	unitemv1.0.0
+1	0	0	0	0	0	AA	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	1	0	0	0	0	CC	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	0	1	0	0	0	GG	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	0	0	1	0	0	TT	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+1	0	0	0	0	0	NA	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	1	0	0	0	0	NC	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	0	1	0	0	0	NG	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	0	0	1	0	0	NT	bPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	0.172111133629895	0.26382938398206	0.564059482388045	0	0	AA	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.340664469091335	0	0.659335530908665	2.00088638711006e-21	0	0	CC	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+9.29240715236437e-51	3.24551699746993e-77	0	1	0	0	GG	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.141235903802323	0.609888250407643	0.248875845790034	0	0	0	TT	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+0	2.1699001368425e-09	0.466754387388619	0.533245610441481	0	0	NA	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.51073043218567	0	0.111713977007138	0.377555590807192	0	0	NC	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.443062623053773	2.49324006533154e-25	0	0.556937376946227	0	0	NG	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.616002768789131	0.148654509510346	0.235342721700523	0	0	0	NT	sPmf	ACGT-N.ctx.param	unitemv1.0.0
+0.985040177228099	0.00321130155061021	0.000604138661946525	0.0111443825593445	0	0	AA	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
+0.991322287541937	0.00132539786463229	0.000250849733490369	0.00710146485994044	0	0	CC	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
+0.988641966382265	0.00173427371413266	0.000157835628755547	0.00946592427484642	0	0	GG	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
+0.984341388468217	0.00342658264602537	0.000428083599271638	0.0118039452864865	0	0	TT	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
+0.999071341714542	0.000663763136640228	0.000138165473496796	0.000126729675320616	0	0	NA	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
+0.998768059815449	0.000704672010965535	0.000376647235922316	0.000150620937662864	0	0	NC	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
+0.999016680294168	0.000598894382522373	0.000131507644811926	0.000252917678497769	0	0	NG	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
+0.998635369888274	0.000809722496585358	0.000282752760086924	0.000272154855054138	0	0	NT	trans	Match.Branch.Stick.Delete.CTX.param	unitemv1.0.0
 """
-        self.mPmf = {}
-        HMMParameters.parseDat(self.mPmf, mPmfdat)
 
-        if bPmfdat is None:
-            bPmfdat = """AA 0.987057271 0.003235682 0.003235682 0.003235682 0.003235682 0  AA
-CC 0.004642770 0.981428920 0.004642770 0.004642770 0.004642770 0  CC
-GG 0.005929860 0.005929860 0.976280560 0.005929860 0.005929860 0  GG
-TT 0.002406837 0.002406837 0.002406837 0.990372650 0.002406837 0  TT
-NA 0.991693486 0.002076628 0.002076628 0.002076628 0.002076628 0  NA
-NC 0.002883788 0.988464849 0.002883788 0.002883788 0.002883788 0  NC
-NG 0.002613835 0.002613835 0.989544660 0.002613835 0.002613835 0  NG
-NT 0.002356228 0.002356228 0.002356228 0.990575089 0.002356228 0  NT
-"""
-        self.bPmf = {}
-        HMMParameters.parseDat(self.bPmf, bPmfdat)
+        self.mPmf = HMMParameters.parseDat( modelSpec, "mPmf")
+        self.bPmf = HMMParameters.parseDat( modelSpec, "bPmf")
+        self.sPmf = HMMParameters.parseDat( modelSpec, "sPmf")
+        self.trans = HMMParameters.parseDat( modelSpec, "trans")
 
-        if sPmfdat is None:
-            sPmfdat = """AA 0.02011942 0.336736109 0.188141521 0.43488353 0.020119421 0  AA
-CC 0.43867758 0.016881951 0.340925420 0.18663310 0.016881951 0  CC
-GG 0.32834646 0.131647516 0.026688865 0.48662830 0.026688865 0  GG
-TT 0.25124307 0.281135027 0.433736630 0.01694264 0.016942636 0  TT
-NA 0.01651072 0.154492514 0.344974992 0.46751106 0.016510719 0  NA
-NC 0.34305431 0.008586935 0.331614465 0.30815736 0.008586935 0  NC
-NG 0.37580837 0.180552820 0.007853463 0.42793189 0.007853463 0  NG
-NT 0.36329025 0.330922178 0.271563220 0.01711218 0.017112177 0  NT
-"""
-        self.sPmf = {}
-        HMMParameters.parseDat(self.sPmf, sPmfdat)
+    def __str__(self):
+        res = []
+        res.append( ">>>> HMMParameters" )
+        res.append("----emission ACGT")
+        res.append( "--mPmf" )
+        for (k,v) in self.mPmf.items():
+            res.append("%s %s" % (str(k),str(v)))
 
-        #  CTX     Match      Branch        Stick       Delete
-        if transdat is None:
-            transdat = """AA 0.9747334 0.012506070 0.0018391528 0.0109214122
-CC 0.9824151 0.007507524 0.0019354064 0.0081419332
-GG 0.9837446 0.005661715 0.0011370914 0.0094566157
-TT 0.9687964 0.016461413 0.0021650551 0.0125771129
-NA 0.9918225 0.006633355 0.0007715309 0.0007726506
-NC 0.9942187 0.003997322 0.0013002356 0.0004837361
-NG 0.9935532 0.004476972 0.0014435620 0.0005262866
-NT 0.9924876 0.005870878 0.0007467905 0.0008947449
-"""
-        self.trans = {}
-        HMMParameters.parseDat(self.trans,transdat)
+        res.append( "--bPmf")
+        for (k,v) in self.bPmf.items():
+            res.append("%s %s" % (str(k),str(v)))
+
+        res.append( "--sPmf")
+        for (k,v) in self.sPmf.items():
+            res.append("%s %s" % (str(k),str(v)))
+        res.append("----transition Match.Branch.Stick.Delete")
+        for (k,v) in self.trans.items():
+            res.append("%s %s" % (str(k),str(v)))
+        res.append( "<<<< HMMParameters")
+        return("\n".join(res))
 
     def toctx(self, ctx):
         if ctx[0]==ctx[1]:
